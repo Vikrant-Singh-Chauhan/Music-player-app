@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 
@@ -20,10 +22,12 @@ class _MusicPageState extends State<MusicPage> {
     "8": "audio/Uska_Hi_Banana.mp3",
   };
   final AudioPlayer audioPlayer = AudioPlayer();
+  bool isSuffled = false;
   bool isPlaying = false;
   Duration duration = Duration.zero;
   Duration position = Duration.zero;
   String currentSong = "1";
+  Random random = Random();
 
   void songPlay() async {
     String songPath = song[currentSong]!;
@@ -35,24 +39,54 @@ class _MusicPageState extends State<MusicPage> {
   }
 
   void nextSong() {
-    int next = int.parse(currentSong) + 1;
-    if (next > song.length) {
-      next = 1;
-    }
     setState(() {
-      currentSong = next.toString();
+      if (isSuffled) {
+        int randomIndex = random.nextInt(song.length) + 1;
+        currentSong = randomIndex.toString();
+      } else {
+        int next = int.parse(currentSong) + 1;
+        if (next > song.length) next = 1;
+        currentSong = next.toString();
+      }
+      songPlay();
+    });
+  }
+  // void nextSong() {
+  //   setState(() {
+  //     if (isSuffled) {
+  //       int randomIndex = random.nextInt(song.length) + 1;
+  //       currentSong = randomIndex.toString();
+  //     } else {
+  //       () {
+  //         int next = int.parse(currentSong) + 1;
+  //         if (next > song.length) {
+  //           next = 1;
+  //           currentSong = next.toString();
+  //         }
+  //       };
+  //     }
+  //
+  //     songPlay();
+  //   });
+  // }
+
+  void previousSong() {
+    setState(() {
+      if (isSuffled) {
+        int randomIndex = random.nextInt(song.length) + 1;
+        currentSong = randomIndex.toString();
+      } else {
+        int previous = int.parse(currentSong) - 1;
+          previous = song.length;
+          currentSong = previous.toString();
+        }
       songPlay();
     });
   }
 
-  void previousSong() {
-    int previous = int.parse(currentSong) - 1;
-    if (previous < 1) {
-      previous = song.length;
-    }
+  void toggleSuffled() {
     setState(() {
-      currentSong = previous.toString();
-      songPlay();
+      isSuffled = !isSuffled;
     });
   }
 
@@ -73,7 +107,7 @@ class _MusicPageState extends State<MusicPage> {
     });
   }
 
-  String _formatDuration(Duration duration) {
+  String formatDuration(Duration duration) {
     return "${duration.inMinutes}:${(duration.inSeconds % 60).toString().padLeft(2, '0')}";
   }
 
@@ -82,48 +116,57 @@ class _MusicPageState extends State<MusicPage> {
     return Scaffold(
       body: Center(
           child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            song[currentSong]!.split('/').last,
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 20),
+          Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
-                song[currentSong]!.split('/').last,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(onPressed: previousSong, icon: Icon(Icons.skip_previous)),
-                  ElevatedButton(
-                    onPressed: () {
-                      songPlay();
-                      setState(() {
-                        isPlaying = !isPlaying;
-                      });
-                    },
-                    child: isPlaying ? Icon(Icons.pause) : Icon(Icons.play_arrow),
-                  ),
-                  IconButton(onPressed: nextSong, icon: Icon(Icons.skip_next)),
-                ],
-              ),
-              SizedBox(height: 20),
-              Slider(
-                min: 0,
-                max: duration.inSeconds.toDouble(),
-                value: position.inSeconds.toDouble(),
-                thumbColor: Colors.blue,
-                onChanged: (value) {
-                  audioPlayer.seek(Duration(seconds: value.toInt()));
+              IconButton(
+                  onPressed: previousSong, icon: Icon(Icons.skip_previous)),
+              ElevatedButton(
+                onPressed: () {
+                  songPlay();
+                  setState(() {
+                    isPlaying = !isPlaying;
+                  });
                 },
+                child: isPlaying ? Icon(Icons.pause) : Icon(Icons.play_arrow),
               ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  Text(_formatDuration(position)),
-                  Text(_formatDuration(duration)),
-                ],
-              )
+              IconButton(onPressed: nextSong, icon: Icon(Icons.skip_next)),
+              IconButton(
+                  onPressed: () {
+                    toggleSuffled();
+                  },
+                  icon: Icon(
+                    Icons.shuffle_rounded,
+                    color: isSuffled ? Colors.blue : Colors.white,
+                  ))
             ],
-          )),
+          ),
+          SizedBox(height: 20),
+          Slider(
+            min: 0,
+            max: duration.inSeconds.toDouble(),
+            value: position.inSeconds.toDouble(),
+            thumbColor: Colors.blue,
+            onChanged: (value) {
+              audioPlayer.seek(Duration(seconds: value.toInt()));
+            },
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              Text(formatDuration(position)),
+              Text(formatDuration(duration)),
+            ],
+          )
+        ],
+      )),
     );
   }
 }
